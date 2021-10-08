@@ -8,11 +8,6 @@ require 'pry'
 # $ bundle install --path vendor/bundle
 # $ bundle exec ruby sample2.rb
 
-# place_id 検索
-#   https://developers.google.com/maps/documentation/places/web-service/place-id
-# place_id 確認
-#
-
 ## "渋谷" "ホテル" などを名前に含むものを幾つか列挙.
 ## 以下のページなどをつかって place_id, 電話番号、緯度経度などをみつけて設定した。
 ## https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder
@@ -25,7 +20,7 @@ require 'pry'
 # "1: 東急ステイ 渋谷新南口,     03-5466-0109, ChIJU0rXoVuLGGARun6MkO0mM2Q"
 # "2: 東急ステイ渋谷 新南口別館, 03-5466-0109, ChIJVVWhwFuLGGAR7ez01kvM6pA"
 #
-# この 3 をきちんと区別して、
+# この 3 つをきちんと区別して、
 # place_id から引いた [名前、電話番号] が一致するかを判定する。
 # 名前中の SPACE 有無の揺れも吸収して判定する。
 
