@@ -2,6 +2,8 @@
 
 require './google_place_id'
 require 'pp'
+require 'pry'
+require 'pry-byebug'
 
 DATA = [
   {
@@ -29,6 +31,33 @@ DATA = [
 ].freeze
 
 client = GooglePlaceId.new
+
+puts '#--- init_csv(rows)'
+client.init_csv([])
+rows = client.read_csv
+pp rows.map(&:values)
+
+puts '#--- write_csv'
+rows =
+  DATA.map.with_index do |elem, idx|
+    {
+      rec_id: idx + 1,
+      name: elem[:name], phone: elem[:phone], place_id: nil, memo: nil
+    }
+  end
+client.write_csv(rows)
+rows = client.read_csv
+pp rows.map(&:values)
+
+rows = client.read_csv
+pp rows.map(&:values)
+
+puts '#--- update_csv'
+client.update_csv
+rows = client.read_csv
+pp rows.map(&:values)
+
+exit
 
 puts '#--- info_place_id'
 info = client.info_place_id(DATA[0][:place_id])

@@ -3,14 +3,19 @@
 require 'dotenv'
 require 'google_places'
 require 'csv'
-require 'pry'
 
 class GooglePlaceId
   GOOGLE_PLACE_ID_LANG = 'ja'
 
+  CSV_FILE_PATH = './tmp/place_ids.csv'
+  CSV_HEDER = %i[rec_id name phone place_id memo].freeze
+
+  attr_reader :rows
+
   def initialize
     Dotenv.load
     @client = GooglePlaces::Client.new ENV['API_KEY']
+    @rows = []
   end
 
   # place_id から hash で :name, :phone, :location [緯度,経度] などを返す。
@@ -54,9 +59,10 @@ class GooglePlaceId
     []
   end
 
-  # ヘッダー行: 'name', 'phone', 'place_code', 'memo', データ行 rows の csv を作る。
-  def init_csv(rows)
-    # TODO:
+  # ヘッダー行: 'rec_id, name', 'phone', 'place_code', 'memo', データ行 rows の csv を作る。
+  def init_csv(data)
+    @rows = write_csv(data)
+    rows_to_array
   end
 
   # csv の place_id 列を更新する。(name, phone 列で検索して)
@@ -65,6 +71,27 @@ class GooglePlaceId
   # place_id が見つからなければ place_id 列は nil にする。
   # 複数候補があって特定できないときは、place_id は変化させず、memo に複数ヒットしている旨を記載する。
   def update_csv
-    # TODO:
+    data = read_csv
+    write_csv(data)
+  end
+
+  def read_csv
+    @rows = CSV.read(CSV_FILE_PATH, headers: true)
+    rows_to_array
+  end
+
+  # private
+
+  def write_csv(data)
+    CSV.open(CSV_FILE_PATH, 'w') do |csv|
+      header = CSV_HEDER.map(&:to_s)
+      header[0] = "\uFEFF" + header[0]
+      csv << header
+      data.each { |d| csv << d.values }
+    end
+  end
+
+  def rows_to_array
+    @rows.map(&:to_h).map { |x| x. transform_keys(&:to_sym) }
   end
 end
