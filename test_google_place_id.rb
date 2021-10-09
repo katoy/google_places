@@ -18,6 +18,11 @@ DATA = [
     name: '東急ステイ渋谷 新南口別館', phone: '03-5466-0109', location: [35.6555194, 139.6935628],
     place_id: 'ChIJVVWhwFuLGGAR7ez01kvM6pA'
   },
+  # 曖昧な名前
+  {
+    name: '東急ステイ渋谷 新南', phone: '03-5466-0109', location: [35.6555194, 139.6935628],
+    place_id: 'ChIJVVWhwFuLGGAR7ez01kvM6pA'
+  },
   # 名前の揺れ
   {
     name: '東急ステイ渋谷新南口別館', phone: '03-5466-0109', location: [35.6555194, 139.6935628],

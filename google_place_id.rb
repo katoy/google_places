@@ -7,8 +7,9 @@ require 'csv'
 class GooglePlaceId
   GOOGLE_PLACE_ID_LANG = 'ja'
 
+  BOM = "\uFEFF"
   CSV_FILE_PATH = './tmp/place_ids.csv'
-  CSV_HEDER = %i[rec_id name phone place_id memo].freeze
+  CSV_HEDER = %i[rec_id name check phone place_id url memo].freeze
 
   attr_reader :csv_rows
 
@@ -72,7 +73,13 @@ class GooglePlaceId
   # 複数候補があって特定できないときは、place_id は変化させず、memo に複数ヒットしている旨を記載する。
   def update_csv
     data = read_csv
+    data = data.map { |rec| update_record(rec) }
     write_csv(data)
+  end
+
+  # csv の URL が指す場所の name, phone が name 列、phone 列の値に一致するかを check 列に書き込む
+  def check_csv
+    # TODO
   end
 
   def read_csv
@@ -80,18 +87,50 @@ class GooglePlaceId
     csv_rows_to_array
   end
 
-  # private
-
   def write_csv(data_hash)
     CSV.open(CSV_FILE_PATH, 'w') do |csv|
       header = CSV_HEDER.map(&:to_s)
-      header[0] = "\uFEFF" + header[0]
+      header[0] = BOM + header[0]
       csv << header
       data_hash.each { |d| csv << d.values }
     end
   end
 
+  private
+
   def csv_rows_to_array
-    @csv_rows.map(&:to_h).map { |x| x. transform_keys(&:to_sym) }
+    @csv_rows.map(&:to_h).map { |x| x.transform_keys(&:to_sym) }
+  end
+
+  def update_record(rec)
+    place_ids = search_place_ids(rec[:name], rec[:phone])
+    if place_ids.empty?
+      rec[:memo] =
+        if rec[:place_id]
+          "not found (before: #{rec[:place_id]})"
+        else
+          'not found'
+        end
+      rec[:place_id] = nil
+    elsif place_ids.size == 1
+      rec[:memo] =
+        (rec[:place_id] if rec[:place_id] != place_ids[0][:placd_icd])
+      rec[:place_id] = place_ids[0][:place_id]
+    else
+      matchs = place_ids.select { |x| rec[:name] == x[:name] && rec[:phone] == x[:phone] }
+      if matchs.size == 1
+        rec[:memo] =
+          (rec[:place_id] if rec[:place_id] != matchs[0][:placd_icd])
+        rec[:place_id] = matchs[0][:place_id]
+      else
+        rec[:memo] = place_ids.map { |x| "#{x[:place_id]} '#{x[:name]}'" }.join(' | ')
+      end
+    end
+
+    rec[:check] = false
+    if rec[:place_id]
+      rec[:url] = "https://www.google.com/maps/place/?q=place_id:#{rec[:place_id]}"
+    end
+    rec
   end
 end
