@@ -92,7 +92,11 @@ class GooglePlaceId
       header = CSV_HEDER.map(&:to_s)
       header[0] = BOM + header[0]
       csv << header
-      data_hash.each { |d| csv << d.values }
+      # data_hash.each { |d| csv << d.values }
+      data_hash.each do |d|
+        ary = CSV_HEDER.map { |key| d[key] }
+        csv << ary
+      end
     end
   end
 
