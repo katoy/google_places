@@ -10,12 +10,12 @@ class GooglePlaceId
   CSV_FILE_PATH = './tmp/place_ids.csv'
   CSV_HEDER = %i[rec_id name phone place_id memo].freeze
 
-  attr_reader :rows
+  attr_reader :csv_rows
 
   def initialize
     Dotenv.load
     @client = GooglePlaces::Client.new ENV['API_KEY']
-    @rows = []
+    @csv_rows = nil
   end
 
   # place_id から hash で :name, :phone, :location [緯度,経度] などを返す。
@@ -61,8 +61,8 @@ class GooglePlaceId
 
   # ヘッダー行: 'rec_id, name', 'phone', 'place_code', 'memo', データ行 rows の csv を作る。
   def init_csv(data)
-    @rows = write_csv(data)
-    rows_to_array
+    @csv_rows = write_csv(data)
+    csv_rows_to_array
   end
 
   # csv の place_id 列を更新する。(name, phone 列で検索して)
@@ -76,22 +76,22 @@ class GooglePlaceId
   end
 
   def read_csv
-    @rows = CSV.read(CSV_FILE_PATH, headers: true)
-    rows_to_array
+    @csv_rows = CSV.read(CSV_FILE_PATH, headers: true)
+    csv_rows_to_array
   end
 
   # private
 
-  def write_csv(data)
+  def write_csv(data_hash)
     CSV.open(CSV_FILE_PATH, 'w') do |csv|
       header = CSV_HEDER.map(&:to_s)
       header[0] = "\uFEFF" + header[0]
       csv << header
-      data.each { |d| csv << d.values }
+      data_hash.each { |d| csv << d.values }
     end
   end
 
-  def rows_to_array
-    @rows.map(&:to_h).map { |x| x. transform_keys(&:to_sym) }
+  def csv_rows_to_array
+    @csv_rows.map(&:to_h).map { |x| x. transform_keys(&:to_sym) }
   end
 end
