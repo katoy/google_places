@@ -9,7 +9,7 @@ class GooglePlaceId
 
   BOM = "\uFEFF"
   CSV_FILE_PATH = './tmp/place_ids.csv'
-  CSV_HEDER = %i[rec_id name check phone place_id url memo].freeze
+  CSV_HEADER = %i[rec_id check name phone place_id url memo].freeze
 
   attr_reader :csv_rows
 
@@ -61,8 +61,8 @@ class GooglePlaceId
   end
 
   # ヘッダー行: 'rec_id, name', 'phone', 'place_code', 'memo', データ行 rows の csv を作る。
-  def init_csv(data)
-    @csv_rows = write_csv(data)
+  def init_csv(data, file_path = CSV_FILE_PATH)
+    @csv_rows = write_csv(data, file_path)
     csv_rows_to_array
   end
 
@@ -71,31 +71,32 @@ class GooglePlaceId
   # 変化がなければ、 memo は nil にする。
   # place_id が見つからなければ place_id 列は nil にする。
   # 複数候補があって特定できないときは、place_id は変化させず、memo に複数ヒットしている旨を記載する。
-  def update_csv
-    data = read_csv
+  def update_csv(file_path = CSV_FILE_PATH)
+    data = read_csv(file_path)
     data = data.map { |rec| update_record(rec) }
-    write_csv(data)
+    write_csv(data, file_path)
   end
 
   # csv の URL が指す場所の name, phone が name 列、phone 列の値に一致するかを check 列に書き込む
-  def check_csv
-    # TODO
+  def check_csv(file_path = CSV_FILE_PATH)
+    data = read_csv(file_path)
+    data = data.map { |rec| check_record(rec) }
+    write_csv(data, file_path)
   end
 
-  def read_csv
-    @csv_rows = CSV.read(CSV_FILE_PATH, headers: true)
+  def read_csv(file_path = CSV_FILE_PATH)
+    @csv_rows = CSV.read(file_path, 'r:BOM|UTF-8', headers: true)
     csv_rows_to_array
   end
 
-  def write_csv(data_hash)
-    CSV.open(CSV_FILE_PATH, 'w') do |csv|
-      header = CSV_HEDER.map(&:to_s)
-      header[0] = BOM + header[0]
-      csv << header
-      # data_hash.each { |d| csv << d.values }
-      data_hash.each do |d|
-        ary = CSV_HEDER.map { |key| d[key] }
-        csv << ary
+  def write_csv(data, file_path = CSV_FILE_PATH)
+    File.open(file_path, 'w') do |file|
+      file.print(BOM) # bomを先頭に追加
+
+      file.puts(CSV_HEADER.map(&:to_s).to_csv(force_quotes: true))
+      data.each do |d|
+        line = d.keys.map { |key| d[key] }
+        file.puts(line.to_csv(force_quotes: true))
       end
     end
   end
@@ -131,10 +132,23 @@ class GooglePlaceId
       end
     end
 
-    rec[:check] = false
+    rec[:check] = nil
     if rec[:place_id]
       rec[:url] = "https://www.google.com/maps/place/?q=place_id:#{rec[:place_id]}"
     end
+    rec
+  end
+
+  def check_record(rec)
+    place_id = rec[:place_id]
+    rec[:check] =
+      if place_id.to_s == ''
+        nil
+      else
+        info = info_place_id(rec[:place_id])
+        p "#{info[:name]} : #{rec[:name]}, #{rec[:phone]}, #{info[:phone]}"
+        (rec[:name] == info[:name]) && (rec[:phone] == info[:phone])
+      end
     rec
   end
 end

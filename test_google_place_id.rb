@@ -37,6 +37,12 @@ DATA = [
 
 client = GooglePlaceId.new
 
+puts '#--- check_csv'
+system('cp ^f ./test/test.csv ./test/place_ids.csv')
+client.check_csv('./test/place_ids.csv')
+rows = client.read_csv('./test/place_ids.csv')
+pp rows.map(&:values)
+
 puts '#--- init_csv(rows)'
 client.init_csv([])
 rows = client.read_csv
@@ -46,7 +52,7 @@ puts '#--- write_csv'
 rows =
   DATA.map.with_index do |elem, idx|
     {
-      rec_id: idx + 1,
+      rec_id: idx + 1, check: nil,
       name: elem[:name], phone: elem[:phone], place_id: nil, memo: nil
     }
   end
@@ -61,8 +67,6 @@ puts '#--- update_csv'
 client.update_csv
 rows = client.read_csv
 pp rows.map(&:values)
-
-exit
 
 puts '#--- info_place_id'
 info = client.info_place_id(DATA[0][:place_id])
