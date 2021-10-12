@@ -147,7 +147,8 @@ class GooglePlaceId
       else
         info = info_place_id(rec[:place_id])
         p "#{info[:name]} : #{rec[:name]}, #{rec[:phone]}, #{info[:phone]}"
-        (rec[:name] == info[:name]) && (rec[:phone] == info[:phone])
+        # (rec[:name] == info[:name]) && (rec[:phone] == info[:phone])
+        (rec[:phone] == info[:phone])
       end
     rec
   end
