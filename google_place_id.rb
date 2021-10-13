@@ -84,6 +84,14 @@ class GooglePlaceId
     write_csv(data, file_path)
   end
 
+  # csv の URL が指す場所の name, phone が name 列、phone 列の値に一致するかを check 列に書き込む
+  # place_id から引いた name, phone を memo 列に書き出す
+  def check_csv2(file_path = CSV_FILE_PATH)
+    data = read_csv(file_path)
+    data = data.map { |rec| check_record2(rec) }
+    write_csv(data, file_path)
+  end
+
   def read_csv(file_path = CSV_FILE_PATH)
     @csv_rows = CSV.read(file_path, 'r:BOM|UTF-8', headers: true)
     csv_rows_to_array
@@ -147,6 +155,21 @@ class GooglePlaceId
       else
         info = info_place_id(rec[:place_id])
         p "#{info[:name]} : #{rec[:name]}, #{rec[:phone]}, #{info[:phone]}"
+        # (rec[:name] == info[:name]) && (rec[:phone] == info[:phone])
+        (rec[:phone] == info[:phone])
+      end
+    rec
+  end
+
+  def check_record2(rec)
+    place_id = rec[:place_id]
+    rec[:check] =
+      if place_id.to_s == ''
+        nil
+      else
+        info = info_place_id(rec[:place_id])
+        p "#{info[:name]} : #{rec[:name]}, #{rec[:phone]}, #{info[:phone]}"
+        rec[:memo] = "'#{info[:name]}', '#{info[:phone]}']"
         # (rec[:name] == info[:name]) && (rec[:phone] == info[:phone])
         (rec[:phone] == info[:phone])
       end
