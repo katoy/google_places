@@ -53,7 +53,8 @@ rows =
   DATA.map.with_index do |elem, idx|
     {
       rec_id: idx + 1, check: nil,
-      name: elem[:name], phone: elem[:phone], place_id: nil, memo: nil
+      name: elem[:name], phone: elem[:phone], place_id: nil, memo: nil,
+      enable: true
     }
   end
 client.write_csv(rows)

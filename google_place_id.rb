@@ -9,7 +9,7 @@ class GooglePlaceId
 
   BOM = "\uFEFF"
   CSV_FILE_PATH = './tmp/place_ids.csv'
-  CSV_HEADER = %i[rec_id check name phone place_id url memo].freeze
+  CSV_HEADER = %i[rec_id check name phone place_id url memo enable].freeze
 
   attr_reader :csv_rows
 
@@ -60,14 +60,14 @@ class GooglePlaceId
     []
   end
 
-  # ヘッダー行: 'rec_id, name', 'phone', 'place_code', 'memo', データ行 rows の csv を作る。
+  # ヘッダー行: 'rec_id, name', 'phone', 'place_id', '' , url', memo, 'enable', データ行 rows の csv を作る。
   def init_csv(data, file_path = CSV_FILE_PATH)
     @csv_rows = write_csv(data, file_path)
     csv_rows_to_array
   end
 
   # csv の place_id 列を更新する。(name, phone 列で検索して)
-  # place_id 値に変化があれば、memo に 古い place_id 値を転機する。
+  # place_id 値に変化があれば、memo に 古い place_id 値を転記する。
   # 変化がなければ、 memo は nil にする。
   # place_id が見つからなければ place_id 列は nil にする。
   # 複数候補があって特定できないときは、place_id は変化させず、memo に複数ヒットしている旨を記載する。
@@ -99,7 +99,7 @@ class GooglePlaceId
 
   def write_csv(data, file_path = CSV_FILE_PATH)
     File.open(file_path, 'w') do |file|
-      file.print(BOM) # bomを先頭に追加
+      file.print(BOM) # bom を先頭に追加
 
       file.puts(CSV_HEADER.map(&:to_s).to_csv(force_quotes: true))
       data.each do |d|
@@ -169,7 +169,7 @@ class GooglePlaceId
       else
         info = info_place_id(rec[:place_id])
         p "#{info[:name]} : #{rec[:name]}, #{rec[:phone]}, #{info[:phone]}"
-        rec[:memo] = "'#{info[:name]}', '#{info[:phone]}']"
+        rec[:memo] = "'#{info[:name]}' '#{info[:phone]}'"
         # (rec[:name] == info[:name]) && (rec[:phone] == info[:phone])
         (rec[:phone] == info[:phone])
       end
