@@ -4,13 +4,15 @@ require 'dotenv'
 require 'google_places'
 require 'csv'
 
-# [ビル名、電話番号] <-> place_id
-class GooglePlaceId
+# [ビル名、郵便番号, [緯度、軽度]] <-> place_id
+class GooglePlaceIdBuilding
   GOOGLE_PLACE_ID_LANG = 'ja'
 
   BOM = "\uFEFF"
-  CSV_FILE_PATH = './tmp/place_ids.csv'
-  CSV_HEADER = %i[rec_id check name phone place_id url memo enable].freeze
+  CSV_FILE_PATH = './tmp/place_ids_building.csv'
+  CSV_HEADER = %i[
+    rec_id check postal_code name latitude longitude place_id url memo enable
+  ].freeze
 
   attr_reader :csv_rows
 
@@ -20,42 +22,42 @@ class GooglePlaceId
     @csv_rows = nil
   end
 
-  # place_id から hash で :name, :phone, :location [緯度,経度] などを返す。
-  # 不正な place_id なら、 { name: nil, phone: nil, location: [] } を返す。
+  # place_id から hash で :name, : ppstal_code, :location [緯度,経度] などを返す。
+  # 不正な place_id なら、 { name: nil, posta_code: nil, location: [] } を返す。
   def info_place_id(place_id)
     x = @client.spot(place_id, language: GOOGLE_PLACE_ID_LANG)
     {
       name: x[:name],
-      phone: x[:formatted_phone_number],
+      postal_code: x[:postal_code],
       location: [x[:lat], x[:lng]]
     }
   rescue StandardError => e
     p e.message
     puts e.backtrace
-    { name: nil, phone: nil, location: [] }
+    { name: nil, posta_code: nil, location: [] }
   end
 
-  # place_id が指す場所の name, phone が 引数の name, phone と一致するかを調べる。
-  def correct_place_id?(place_id, name, phone)
+  # place_id が指す場所の name, phone が 引数の name, postal_code と一致するかを調べる。
+  def correct_place_id?(place_id, _name, postal_code)
     info = info_place_id(place_id)
-    name == info[:name] && phone == info[:phone]
+    postal_code == info[:postal_code]
   end
 
-  # name, phone から place_id を求める。
-  # 一致するものすべてを Array で返す。({ :place_id, :name, :phone } の array)
+  # name, postal_code から place_id を求める。
+  # 一致するものすべてを Array で返す。({ :place_id, :name, :postal_code, location } の array)
   # 一致するものがなければ [] を返す。
-  def search_place_ids(name, phone)
+  def search_place_ids(idx, name, postal_code, location)
     ans = []
 
-    x = @client.spots_by_query(name, language: GOOGLE_PLACE_ID_LANG)
-    p "#--- #{name}, #{phone}"
+    x = @client.spots(*location, name: name, language: GOOGLE_PLACE_ID_LANG)
+    p "#--- #{idx}. #{name}, #{postal_code}"
     x.each do |elem|
       place_id = elem['place_id']
       z = @client.spot(place_id, language: GOOGLE_PLACE_ID_LANG)
       z_name = z['name']
-      z_phone = z['formatted_phone_number']
-      if z_phone == phone
-        ans << { place_id: place_id, name: z_name, phone: z_phone }
+      z_postal_code = z['postal_code']&.tr('-', '')
+      if z_postal_code == postal_code
+        ans << { place_id: place_id, name: z_name, postal_code: z_postal_code }
       end
     end
     ans
@@ -65,7 +67,7 @@ class GooglePlaceId
     []
   end
 
-  # ヘッダー行: 'rec_id', 'name', 'phone', 'place_id', 'url', 'memo', 'enable', データ行 rows の csv を作る。
+  # ヘッダー行: 'rec_id', 'postal_code', name', 'place_id', 'url', 'memo', 'enable', データ行 rows の csv を作る。
   def init_csv(data, file_path = CSV_FILE_PATH)
     @csv_rows = write_csv(data, file_path)
     csv_rows_to_array
@@ -78,22 +80,14 @@ class GooglePlaceId
   # 複数候補があって特定できないときは、place_id は変化させず、memo に複数ヒットしている旨を記載する。
   def update_csv(file_path = CSV_FILE_PATH)
     data = read_csv(file_path)
-    data = data.map { |rec| update_record(rec) }
+    data = data.map.with_index { |rec, idx| update_record(idx, rec) }
     write_csv(data, file_path)
   end
 
-  # csv の URL が指す場所の name, phone が name 列、phone 列の値に一致するかを check 列に書き込む
+  # csv の URL が指す場所の name, postal_code が name 列、postal_code 列の値に一致するかを check 列に書き込む
   def check_csv(file_path = CSV_FILE_PATH)
     data = read_csv(file_path)
-    data = data.map { |rec| check_record(rec) }
-    write_csv(data, file_path)
-  end
-
-  # csv の URL が指す場所の name, phone が name 列、phone 列の値に一致するかを check 列に書き込む
-  # place_id から引いた name, phone を memo 列に書き出す
-  def check_csv2(file_path = CSV_FILE_PATH)
-    data = read_csv(file_path)
-    data = data.map { |rec| check_record2(rec) }
+    data = data.map.with_index { |rec, idx| check_record(idx, rec) }
     write_csv(data, file_path)
   end
 
@@ -120,8 +114,9 @@ class GooglePlaceId
     @csv_rows.map(&:to_h).map { |x| x.transform_keys(&:to_sym) }
   end
 
-  def update_record(rec)
-    place_ids = search_place_ids(rec[:name], rec[:phone])
+  def update_record(idx, rec)
+    location = [rec[:latitude], rec[:longitude]]
+    place_ids = search_place_ids(idx, rec[:name], rec[:postal_code], location)
     if place_ids.empty?
       rec[:memo] =
         if rec[:place_id]
@@ -135,48 +130,37 @@ class GooglePlaceId
         (rec[:place_id] if rec[:place_id] != place_ids[0][:placd_icd])
       rec[:place_id] = place_ids[0][:place_id]
     else
-      matchs = place_ids.select { |x| rec[:name] == x[:name] && rec[:phone] == x[:phone] }
+      matchs = place_ids.select do |x|
+        rec[:name] == x[:name] && rec[:postal_code] == x[:postal_code]
+      end
       if matchs.size == 1
         rec[:memo] =
           (rec[:place_id] if rec[:place_id] != matchs[0][:placd_icd])
         rec[:place_id] = matchs[0][:place_id]
       else
-        rec[:memo] = place_ids.map { |x| "#{x[:place_id]} '#{x[:name]}'" }.join(' | ')
+        rec[:memo] = place_ids.map { |x| "#{x[:place_id]} '#{x[:name]}'" }
+                              .join(' | ')
       end
     end
 
     rec[:check] = nil
     if rec[:place_id]
-      rec[:url] = "https://www.google.com/maps/place/?q=place_id:#{rec[:place_id]}"
+      rec[:url] =
+        "https://www.google.com/maps/place/?q=place_id:#{rec[:place_id]}"
     end
     rec
   end
 
-  def check_record(rec)
+  def check_record(idx, rec)
     place_id = rec[:place_id]
     rec[:check] =
       if place_id.to_s == ''
         nil
       else
         info = info_place_id(rec[:place_id])
-        p "#{info[:name]} : #{rec[:name]}, #{rec[:phone]}, #{info[:phone]}"
-        # (rec[:name] == info[:name]) && (rec[:phone] == info[:phone])
-        (rec[:phone] == info[:phone])
-      end
-    rec
-  end
-
-  def check_record2(rec)
-    place_id = rec[:place_id]
-    rec[:check] =
-      if place_id.to_s == ''
-        nil
-      else
-        info = info_place_id(rec[:place_id])
-        p "#{info[:name]} : #{rec[:name]}, #{rec[:phone]}, #{info[:phone]}"
-        rec[:memo] = "'#{info[:name]}' '#{info[:phone]}'"
-        # (rec[:name] == info[:name]) && (rec[:phone] == info[:phone])
-        (rec[:phone] == info[:phone])
+        p "#{idx}, #{info[:name]} : #{rec[:name]}, #{rec[:postal_code]}, #{info[:postal_code]}"
+        # (rec[:name] == info[:name]) && (rec[:postal_code] == info[:postal_code])
+        (rec[:postal_code] == info[:postal_code]&.tr('-', ''))
       end
     rec
   end
