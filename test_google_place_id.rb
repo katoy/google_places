@@ -38,7 +38,6 @@ DATA = [
 client = GooglePlaceId.new
 
 puts '#--- check_csv'
-system('cp ^f ./test/test.csv ./test/place_ids.csv')
 client.check_csv('./test/place_ids.csv')
 rows = client.read_csv('./test/place_ids.csv')
 pp rows.map(&:values)
