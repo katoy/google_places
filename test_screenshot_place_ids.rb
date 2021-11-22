@@ -31,11 +31,11 @@ Playwright.create(playwright_cli_executable_path: './node_modules/.bin/playwrigh
     CSV.read(csv_file_path, 'r:BOM|UTF-8', headers: true).each do |row|
       rec = row.to_h
 
-      # next if rec['rec_id'].to_s != '196'
+      # next if rec['rec_id'].to_s != '148'
 
       out_file_path = format(
-        './maps/%<rec_id>04d-%<name>s',
-        rec_id: rec['rec_id'], name: rec['name']
+        './maps/%<rec_id>04d-%<name>s-%<enable>s',
+        rec_id: rec['rec_id'], name: rec['name'], enable: rec['enable'].to_s
       ).tr(" 　\s\^|=", '_').tr('()[]', '（）［］')
 
       pp out_file_path
@@ -48,8 +48,9 @@ Playwright.create(playwright_cli_executable_path: './node_modules/.bin/playwrigh
         sleep(1)
         # 場所のイメージがあるか否かで url の妥当性を判定している。
         # selectpr path は変動することがあるかもしれない。
-        image = page.query_selector('#pane > div > div > div > div > div > div > button > img')
-        if image
+        image_1 = page.query_selector('#pane > div > div > div > div > div > div > button > img') # 写真
+        image_2 = page.query_selector('#pane > div > div > div > div > div > div > div > img') # イラスト
+        if image_1 || image_2
           page.screenshot(path: out_file_path + '.png')
         else
           system("cp -f maps/blank_png #{out_file_path}-notfound.png")
