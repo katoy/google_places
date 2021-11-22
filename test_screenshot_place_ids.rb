@@ -11,7 +11,7 @@
 #
 # 注意：
 # 　　実行の先頭部分で rm -f maps/*.png を実行している。
-#     goole map サイトアクセウには 1 秒以上の interval を置いている。
+#     goole map サイトアクセスには 1 秒以上の interval を置いている。
 
 require 'csv'
 require 'playwright'
