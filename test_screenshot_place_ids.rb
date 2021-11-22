@@ -10,8 +10,8 @@
 # open maps/*.png でスクリーンショット群を確認できる。
 #
 # 注意：
-# 　　実行の先頭部分で fm -f maps/*.png 指定している。
-#
+# 　　実行の先頭部分で rm -f maps/*.png を実行している。
+#     goole map サイトアクセウには 1 秒以上の interval を置いている。
 
 require 'csv'
 require 'playwright'
