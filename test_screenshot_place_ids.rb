@@ -5,7 +5,7 @@
 # npm install playwright することが必要
 #
 # maps/place_ids.csv にある url のスクリーンショットを maps/*.png として保存する。
-# url が空だったり、url が不正だと、*-botfound.png として blank イメージを保存する。
+# url が空だったり、url が不正だと、*-notfound.png として blank イメージを保存する。
 #
 # open maps/*.png でスクリーンショット群を確認できる。
 #
@@ -47,7 +47,7 @@ Playwright.create(playwright_cli_executable_path: './node_modules/.bin/playwrigh
         page.goto(rec['url'])
         sleep(1)
         # 場所のイメージがあるか否かで url の妥当性を判定している。
-        # selectpr path は変動することがあるかもしれない。
+        # selector path は変動することがあるかもしれない。
         image_1 = page.query_selector('#pane > div > div > div > div > div > div > button > img') # 写真
         image_2 = page.query_selector('#pane > div > div > div > div > div > div > div > img') # イラスト
         if image_1 || image_2

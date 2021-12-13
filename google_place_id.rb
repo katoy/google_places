@@ -35,7 +35,7 @@ class GooglePlaceId
     { name: nil, phone: nil, location: [] }
   end
 
-  # place_id が指す場所の name, phone が 引数の name, phone と一致するかを調べる。
+  # place_id が指す場所の name, phone が 引数の name, phone と一致するかを調べる。
   def correct_place_id?(place_id, name, phone)
     info = info_place_id(place_id)
     name == info[:name] && phone == info[:phone]
@@ -54,9 +54,7 @@ class GooglePlaceId
       z = @client.spot(place_id, language: GOOGLE_PLACE_ID_LANG)
       z_name = z['name']
       z_phone = z['formatted_phone_number']
-      if z_phone == phone
-        ans << { place_id: place_id, name: z_name, phone: z_phone }
-      end
+      ans << { place_id: place_id, name: z_name, phone: z_phone } if z_phone == phone
     end
     ans
   rescue StandardError => e
@@ -146,9 +144,7 @@ class GooglePlaceId
     end
 
     rec[:check] = nil
-    if rec[:place_id]
-      rec[:url] = "https://www.google.com/maps/place/?q=place_id:#{rec[:place_id]}"
-    end
+    rec[:url] = "https://www.google.com/maps/place/?q=place_id:#{rec[:place_id]}" if rec[:place_id]
     rec
   end
 

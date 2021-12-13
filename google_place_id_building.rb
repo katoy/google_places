@@ -23,7 +23,7 @@ class GooglePlaceIdBuilding
   end
 
   # place_id から hash で :name, : ppstal_code, :location [緯度,経度] などを返す。
-  # 不正な place_id なら、 { name: nil, posta_code: nil, location: [] } を返す。
+  # 不正な place_id なら、 { name: nil, postal_code: nil, location: [] } を返す。
   def info_place_id(place_id)
     x = @client.spot(place_id, language: GOOGLE_PLACE_ID_LANG)
     {
@@ -37,7 +37,7 @@ class GooglePlaceIdBuilding
     { name: nil, posta_code: nil, location: [] }
   end
 
-  # place_id が指す場所の name, phone が 引数の name, postal_code と一致するかを調べる。
+  # place_id が指す場所の name, phone が 引数の name, postal_code と一致するかを調べる。
   def correct_place_id?(place_id, _name, postal_code)
     info = info_place_id(place_id)
     postal_code == info[:postal_code]
@@ -56,9 +56,7 @@ class GooglePlaceIdBuilding
       z = @client.spot(place_id, language: GOOGLE_PLACE_ID_LANG)
       z_name = z['name']
       z_postal_code = z['postal_code']&.tr('-', '')
-      if z_postal_code == postal_code
-        ans << { place_id: place_id, name: z_name, postal_code: z_postal_code }
-      end
+      ans << { place_id: place_id, name: z_name, postal_code: z_postal_code } if z_postal_code == postal_code
     end
     ans
   rescue StandardError => e
